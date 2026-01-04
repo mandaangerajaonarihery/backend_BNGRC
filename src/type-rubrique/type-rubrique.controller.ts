@@ -1,15 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { TypeRubriqueService } from './type-rubrique.service';
 import { CreateTypeRubriqueDto } from './dto/create-type-rubrique.dto';
 import { UpdateTypeRubriqueDto } from './dto/update-type-rubrique.dto';
-import { ApiBadRequestResponse, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/entities/auth.entity';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Type Rubrique')
 @Controller('type-rubrique')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class TypeRubriqueController {
-  constructor(private readonly typeRubriqueService: TypeRubriqueService) {}
+  constructor(private readonly typeRubriqueService: TypeRubriqueService) { }
 
   @Post()
-  @ApiOperation({ summary: 'Créer un type de rubrique'})
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Créer un type de rubrique' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiResponse({ status: 201, description: 'Type de rubrique créé' })
   create(@Body() createTypeRubriqueDto: CreateTypeRubriqueDto) {
@@ -33,17 +41,19 @@ export class TypeRubriqueController {
   }
 
   @Patch(':id')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Mettre à jour un type de rubrique' })
   @ApiResponse({ status: 200, description: 'Type de rubrique mise à jour' })
-  @ApiBadRequestResponse({ description: 'Bad Request' }) 
+  @ApiBadRequestResponse({ description: 'Bad Request' })
   update(@Param('id') id: string, @Body() updateTypeRubriqueDto: UpdateTypeRubriqueDto) {
     return this.typeRubriqueService.update(id, updateTypeRubriqueDto);
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Supprimer un type de rubrique' })
   @ApiResponse({ status: 200, description: 'Type de rubrique supprimée' })
-  @ApiBadRequestResponse({ description: 'Bad Request' }) 
+  @ApiBadRequestResponse({ description: 'Bad Request' })
   remove(@Param('id') id: string) {
     return this.typeRubriqueService.remove(id);
   }

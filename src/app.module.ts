@@ -6,10 +6,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RubriquesModule } from './rubriques/rubriques.module';
 import { TypeRubriqueModule } from './type-rubrique/type-rubrique.module';
 import { FichierModule } from './fichier/fichier.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -27,9 +30,10 @@ import { FichierModule } from './fichier/fichier.module';
     }),
     RubriquesModule,
     TypeRubriqueModule,
-    FichierModule
+    FichierModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

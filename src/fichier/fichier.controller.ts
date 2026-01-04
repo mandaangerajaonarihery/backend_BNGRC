@@ -1,12 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Res, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Res, StreamableFile, UseGuards } from '@nestjs/common';
 import { FichierService } from './fichier.service';
 import { CreateFichierDto } from './dto/create-fichier.dto';
 import { UpdateFichierDto } from './dto/update-fichier.dto';
-import { ApiBadRequestResponse, ApiBody, ApiConsumes, ApiOperation, ApiProduces, ApiResponse } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/entities/auth.entity';
 
+@ApiTags('Fichier')
 @Controller('fichier')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class FichierController {
   constructor(private readonly fichierService: FichierService) { }
 
@@ -16,6 +23,7 @@ export class FichierController {
   })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Créer un fichier' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiResponse({ status: 201, description: 'Fichier créé' })
@@ -40,6 +48,7 @@ export class FichierController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Supprimer un fichier' })
   @ApiResponse({ status: 200, description: 'Fichier supprimé' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
