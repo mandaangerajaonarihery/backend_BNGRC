@@ -16,33 +16,34 @@ export class Auth {
     @PrimaryGeneratedColumn('uuid')
     idUtilisateur: string;
 
-    @Column({unique: true})
+    @Column({ unique: true })
     pseudo: string;
 
-    @Column({unique: true})
+    @Column({ unique: true })
     email: string;
 
     @Column()
     motDePasse: string;
 
-    @Column({type: 'enum', enum: Role, default: Role.CLIENT})
+    @Column({ type: 'enum', enum: Role, default: Role.CLIENT })
     role: Role;
 
-    @Column({type: 'enum', enum: statutUtilisateur, default: statutUtilisateur.ATTENTE})
+    @Column({ type: 'enum', enum: statutUtilisateur, default: statutUtilisateur.ATTENTE })
     statut: statutUtilisateur;
 
-    @CreateDateColumn({type: 'timestamp',default: () => 'CURRENT_TIMESTAMP'})
+    @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date;
 
-    @UpdateDateColumn({type: 'timestamp',default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP'})
+    @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updatedAt: Date;
-
-    @Column({nullable: true})
-    refreshToken: string;
-
-    @Column({nullable: true})
+ 
+    @Column({ nullable: true })
     avatar: string;
 
-    @Column({nullable: true})
-    accessToken: string;
+    @Column({ type: 'text', nullable: true })
+    refreshToken: string | null;
+
+    @Column({ type: 'text', nullable: true })
+    accessToken: string | null;
+
 }
