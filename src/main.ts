@@ -36,7 +36,7 @@ async function bootstrap() {
     res.json(document);
   });
 
-  const port = process.env.PORT ?? 3001;
+  const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
   console.log(`🚀 Service Territoriale démarré sur ${port}`);

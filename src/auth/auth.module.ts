@@ -8,8 +8,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer'; // 🚀 Importé pour Cloudinary
+import { FichierModule } from '../fichier/fichier.module'; // 🚀 Importé pour CloudinaryService
 
 @Module({
   imports: [
@@ -18,26 +18,22 @@ import { extname } from 'path';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'defaultSecret',
+        // 🚀 1. Utilise bien JWT_ACCESS_SECRET ici (doit être identique à ta stratégie)
+        secret: configService.get<string>('JWT_ACCESS_SECRET') || 'defaultSecret',
         signOptions: {
           expiresIn: '1d',
         },
       }),
     }),
+    // 🚀 2. Passage en memoryStorage (Indispensable pour Vercel et Cloudinary)
     MulterModule.register({
-      storage: diskStorage({
-        destination: './storage/avatar',
-        filename: (req, file, callback) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-          callback(null, filename);
-        },
-      }),
+      storage: memoryStorage(),
     }),
+    // 🚀 3. Ajout de FichierModule pour injecter CloudinaryService dans AuthService
+    FichierModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  exports: [AuthService, PassportModule, JwtModule],
 })
 export class AuthModule { }

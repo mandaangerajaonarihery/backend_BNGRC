@@ -6,26 +6,23 @@ import { Fichier } from './entities/fichier.entity';
 import { TypeRubrique } from 'src/type-rubrique/entities/type-rubrique.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule } from '@nestjs/config';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { CloudinaryProvider } from './cloudinary.provider'; // 🚀 N'oublie pas de créer ce fichier
+import { CloudinaryService } from './cloudinary.service';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Fichier, TypeRubrique]),
     ConfigModule,
+    // 🚀 On passe en memoryStorage pour Cloudinary et Vercel
     MulterModule.register({
-      storage: diskStorage({
-        destination: './storage',
-        filename: (req, file, callback) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-          callback(null, filename);
-        },
-      }),
+      storage: memoryStorage(),
     }),
   ],
   controllers: [FichierController],
-  providers: [FichierService],
+  // 🚀 Ajoute le Provider et le Service ici
+  providers: [FichierService, CloudinaryProvider, CloudinaryService],
+  // 🚀 Exporte le service pour que AuthModule puisse l'utiliser (Avatars)
+  exports: [CloudinaryService], 
 })
-export class FichierModule { } 
+export class FichierModule { }

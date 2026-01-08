@@ -3,13 +3,12 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Auth } from './entities/auth.entity';
+import { Auth, statutUtilisateur } from './entities/auth.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ForgotAuthDto } from './dto/forgot-auth.dto';
-import * as fs from 'fs';
-import * as path from 'path';
+import { CloudinaryService } from '../fichier/cloudinary.service'; // 🚀 Vérifie ce chemin d'import
 
 @Injectable()
 export class AuthService {
@@ -17,23 +16,24 @@ export class AuthService {
         @InjectRepository(Auth)
         private readonly authRepository: Repository<Auth>,
         private readonly jwtService: JwtService,
+        private readonly cloudinaryService: CloudinaryService, // 🚀 Injection pour Vercel
     ) { }
 
-    private async deleteAvatar(avatarPath: string) {
-        if (avatarPath) {
-            try {
-                const fullPath = path.isAbsolute(avatarPath) ? avatarPath : path.join(process.cwd(), avatarPath);
-                if (fs.existsSync(fullPath)) {
-                    fs.unlinkSync(fullPath);
-                }
-            } catch (error) {
-                console.error(`Erreur lors de la suppression de l'avatar : ${error.message}`);
-            }
+    // Nettoyage : On ne gère plus de fichiers locaux car Vercel les efface
+    private async deleteAvatar(avatarUrl: string) {
+        if (avatarUrl && avatarUrl.includes('cloudinary')) {
+            // Optionnel : Logique de suppression Cloudinary via publicId
+            console.log(`L'ancien avatar (${avatarUrl}) sera ignoré car stocké sur le Cloud.`);
         }
     }
 
     async genererToken(utilisateur: Auth) {
-        const payload = { idUtilisateur: utilisateur.idUtilisateur, email: utilisateur.email, role: utilisateur.role, pseudo: utilisateur.pseudo };
+        const payload = { 
+            idUtilisateur: utilisateur.idUtilisateur, 
+            email: utilisateur.email, 
+            role: utilisateur.role, 
+            pseudo: utilisateur.pseudo 
+        };
         return {
             accessToken: this.jwtService.sign(payload),
             refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
@@ -53,8 +53,6 @@ export class AuthService {
 
             const { motDePasse, confirmationMotDePasse, email, pseudo } = createAuthDto;
 
-            createAuthDto.avatar = avatar.path;
-
             if (confirmationMotDePasse && motDePasse !== confirmationMotDePasse) {
                 throw new BadRequestException('Les mots de passe ne correspondent pas');
             }
@@ -64,13 +62,12 @@ export class AuthService {
             });
 
             if (existingUser) {
-                if (existingUser.email === email) {
-                    throw new BadRequestException('Cet email est déjà utilisé');
-                }
-                if (existingUser.pseudo === pseudo) {
-                    throw new BadRequestException('Ce pseudo est déjà utilisé');
-                }
+                if (existingUser.email === email) throw new BadRequestException('Cet email est déjà utilisé');
+                if (existingUser.pseudo === pseudo) throw new BadRequestException('Ce pseudo est déjà utilisé');
             }
+
+            // 🚀 Etape cruciale : Upload vers Cloudinary au lieu de storage/
+            const uploadResult = await this.cloudinaryService.uploadImage(avatar);
 
             const salt = await bcrypt.genSalt();
             const hashedPassword = await bcrypt.hash(motDePasse, salt);
@@ -78,6 +75,8 @@ export class AuthService {
             const utilisateur = this.authRepository.create({
                 ...createAuthDto,
                 motDePasse: hashedPassword,
+                avatar: uploadResult.secure_url, // 🚀 On stocke l'URL Cloudinary sécurisée
+                statut: statutUtilisateur.ATTENTE // Par défaut en attente
             });
 
             const savedUser = await this.authRepository.save(utilisateur);
@@ -88,9 +87,6 @@ export class AuthService {
                 data: this.formatUserResponse(savedUser),
             }
         } catch (error) {
-            if (avatar && avatar.path) {
-                await this.deleteAvatar(avatar.path);
-            }
             throw new BadRequestException(error.message);
         }
     }
@@ -102,12 +98,12 @@ export class AuthService {
                 throw new BadRequestException('Email ou mot de passe incorrect');
             }
 
-            if (utilisateur.statut !== 'ACTIF' && utilisateur.statut !== 'ATTENTE') {
-                throw new BadRequestException('Désolé, votre de connexion a été refusée. Veuillez contacter l\'administrateur pour plus d\'informations.');
-            } else if (utilisateur.statut === 'ATTENTE') {
+            // Gestion des statuts
+            if (utilisateur.statut === statutUtilisateur.REJETER) {
+                throw new BadRequestException('Désolé, votre connexion a été refusée.');
+            } else if (utilisateur.statut === statutUtilisateur.ATTENTE) {
                 throw new BadRequestException('Votre compte est en attente de validation par un administrateur.');
             }
-
 
             const isMatch = await bcrypt.compare(loginAuthDto.motDePasse, utilisateur.motDePasse);
             if (!isMatch) {
@@ -127,12 +123,10 @@ export class AuthService {
                     ...tokens,
                 },
             }
-
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
-
 
     async findAll() {
         try {
@@ -150,9 +144,7 @@ export class AuthService {
     async findOne(id: string) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouve');
-            }
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouve');
             return {
                 message: 'Utilisateur trouve',
                 status: 200,
@@ -166,9 +158,7 @@ export class AuthService {
     async currentUser(id: string) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouvé');
-            }
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouvé');
             return {
                 message: 'Utilisateur trouvé',
                 status: 200,
@@ -182,9 +172,7 @@ export class AuthService {
     async logout(id: string) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouvé');
-            }
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouvé');
             utilisateur.accessToken = null;
             utilisateur.refreshToken = null;
             await this.authRepository.save(utilisateur);
@@ -198,27 +186,24 @@ export class AuthService {
         }
     }
 
-
     async update(id: string, updateAuthDto: UpdateAuthDto) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouve');
-            }
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouve');
+            
             const { motDePasse, ...userData } = updateAuthDto;
-            const updateData = { ...userData };
+            const updateData: any = { ...userData };
 
             if (motDePasse) {
                 const salt = await bcrypt.genSalt();
-                const hashedPassword = await bcrypt.hash(motDePasse, salt);
-                (updateData as any).motDePasse = hashedPassword;
+                updateData.motDePasse = await bcrypt.hash(motDePasse, salt);
             }
 
-            const utilisateurUpdated = await this.authRepository.update(id, updateData);
+            await this.authRepository.update(id, updateData);
             return {
                 message: 'Utilisateur mis a jour',
                 status: 200,
-                data: utilisateurUpdated,
+                data: await this.authRepository.findOne({ where: { idUtilisateur: id } }),
             }
         } catch (error) {
             throw new BadRequestException(error.message);
@@ -228,18 +213,15 @@ export class AuthService {
     async updateProfile(id: string, updateAuthDto: UpdateAuthDto, avatar?: Express.Multer.File) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouvé');
-            }
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouvé');
 
             const { motDePasse, ...userData } = updateAuthDto;
             const updateData: any = { ...userData };
 
             if (avatar) {
-                if (utilisateur.avatar) {
-                    await this.deleteAvatar(utilisateur.avatar);
-                }
-                updateData.avatar = avatar.path;
+                // 🚀 Nouvel upload Cloudinary pour le profil
+                const uploadResult = await this.cloudinaryService.uploadImage(avatar);
+                updateData.avatar = uploadResult.secure_url;
             }
 
             if (motDePasse) {
@@ -247,25 +229,13 @@ export class AuthService {
                 updateData.motDePasse = await bcrypt.hash(motDePasse, salt);
             }
 
-            // Ensure pseudo/email uniqueness if changed (simplified check)
-            if (updateData.pseudo && updateData.pseudo !== utilisateur.pseudo) {
-                const existing = await this.authRepository.findOne({ where: { pseudo: updateData.pseudo } });
-                if (existing) throw new BadRequestException('Ce pseudo est déjà utilisé');
-            }
-
             await this.authRepository.update(id, updateData);
-
-            // Return updated user
             const updatedUser = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-
-            if (!updatedUser) {
-                throw new BadRequestException('Impossible de récupérer les informations de l\'utilisateur mis à jour');
-            }
 
             return {
                 message: 'Profil mis à jour avec succès',
                 status: 200,
-                data: this.formatUserResponse(updatedUser)
+                data: this.formatUserResponse(updatedUser!)
             }
         } catch (error) {
             throw new BadRequestException(error.message);
@@ -274,30 +244,24 @@ export class AuthService {
 
     async motDePasseOublie(forgotAuthDto: ForgotAuthDto) {
         try {
-            console.log(forgotAuthDto.email);
             const utilisateur = await this.authRepository.findOne({ where: { email: forgotAuthDto.email } });
-            console.log(utilisateur);
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouve');
-            }
-            if (utilisateur.statut !== 'ACTIF') {
-                throw new BadRequestException('Votre compte est en attente de validation ou a été rejeté');
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouve');
+            if (utilisateur.statut !== statutUtilisateur.ACTIF) {
+                throw new BadRequestException('Votre compte n\'est pas actif');
             }
 
-            if (forgotAuthDto.motDePasse != forgotAuthDto.confirmationMotDePasse) {
+            if (forgotAuthDto.motDePasse !== forgotAuthDto.confirmationMotDePasse) {
                 throw new BadRequestException('Les mots de passe ne correspondent pas');
             }
 
-            const { motDePasse, confirmationMotDePasse, ...userData } = forgotAuthDto;
-            const updateData = { ...userData };
             const salt = await bcrypt.genSalt();
             const hashedPassword = await bcrypt.hash(forgotAuthDto.motDePasse, salt);
-            (updateData as any).motDePasse = hashedPassword;
-            const utilisateurUpdated = await this.authRepository.update(utilisateur.idUtilisateur, updateData);
+            
+            await this.authRepository.update(utilisateur.idUtilisateur, { motDePasse: hashedPassword });
+            
             return {
                 message: 'Mot de passe mis a jour',
-                status: 200,
-                data: utilisateurUpdated,
+                status: 200
             }
         } catch (error) {
             throw new BadRequestException(error.message);
@@ -307,13 +271,11 @@ export class AuthService {
     async refreshToken(id: string) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            console.log(utilisateur);
             if (!utilisateur || !utilisateur.refreshToken) {
-                throw new BadRequestException('Utilisateur non trouvé ou session expirée');
+                throw new BadRequestException('Session expirée');
             }
 
             const tokens = await this.genererToken(utilisateur);
-
             utilisateur.accessToken = tokens.accessToken;
             utilisateur.refreshToken = tokens.refreshToken;
             await this.authRepository.save(utilisateur);
@@ -334,19 +296,12 @@ export class AuthService {
     async remove(id: string) {
         try {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
-            if (!utilisateur) {
-                throw new BadRequestException('Utilisateur non trouve');
-            }
+            if (!utilisateur) throw new BadRequestException('Utilisateur non trouve');
 
-            if (utilisateur.avatar) {
-                await this.deleteAvatar(utilisateur.avatar);
-            }
-
-            const utilisateurDeleted = await this.authRepository.delete(id);
+            await this.authRepository.delete(id);
             return {
                 message: 'Utilisateur supprime',
-                status: 200,
-                data: utilisateurDeleted,
+                status: 200
             }
         } catch (error) {
             throw new BadRequestException(error.message);

@@ -17,14 +17,20 @@ import { AuthModule } from './auth/auth.module';
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: config.get('DB_PORT'),
-        username: config.get('DB_USER'),
-        password: config.get('DB_PASSWORD'),
-        database: config.get('DB_NAME'),
+        host: config.get<string>('DB_HOST'),
+        // On s'assure que le port est un nombre
+        port: config.get<number>('DB_PORT', 5432),
+        username: config.get<string>('DB_USER'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         autoLoadEntities: true,
+        // synchronize: true permet de créer les tables automatiquement sur Neon
         synchronize: true,
+        // 🚀 Configuration SSL obligatoire pour la connexion sécurisée à Neon
+        ssl: {
+          rejectUnauthorized: false,
+        },
       }),
       inject: [ConfigService],
     }),
@@ -36,4 +42,4 @@ import { AuthModule } from './auth/auth.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
