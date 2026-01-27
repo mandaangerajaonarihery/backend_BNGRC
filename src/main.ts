@@ -13,8 +13,7 @@ async function bootstrap() {
   app.setGlobalPrefix('serviceterritoriale');
   app.enableCors(); 
 
-  // 2. Configuration du stockage statique (Inclus dans le préfixe pour ton Front)
-  // URL : https://backend-bngrc.vercel.app/serviceterritoriale/storage/nom_du_fichier.ext
+  // 2. Configuration du stockage statique
   app.useStaticAssets(join(__dirname, '..', 'storage'), {
     prefix: '/serviceterritoriale/storage',
   });
@@ -29,14 +28,21 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // RÉGLAGE CRUCIAL : On met le chemin à 'serviceterritoriale'
-  // On désactive useGlobalPrefix ici pour éviter le doublon /serviceterritoriale/serviceterritoriale
+  // FIX DES 404 : Utilisation de CDN pour les ressources Swagger
   SwaggerModule.setup('serviceterritoriale', app, document, {
     useGlobalPrefix: false, 
     swaggerOptions: {
       persistAuthorization: true,
     },
     customSiteTitle: 'Documentation API - Service Territoriale',
+    // On charge les fichiers depuis un CDN pour éviter les erreurs 404 de Vercel
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.js',
+    ],
+    customCssUrl: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+    ],
   });
 
   // Route pour le JSON de la doc
@@ -50,11 +56,9 @@ async function bootstrap() {
     await app.listen(port);
     console.log(`🚀 Serveur local : http://localhost:${port}/serviceterritoriale`);
   } else {
-    // Sur Vercel, on initialise l'app et on retourne l'instance
     await app.init();
     return app.getHttpAdapter().getInstance();
   }
 }
 
-// L'exportation pour que Vercel puisse "saisir" l'application
 export default bootstrap();
