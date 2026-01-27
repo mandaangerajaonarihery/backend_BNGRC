@@ -1,21 +1,15 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import * as streamifier from 'streamifier';
 import { extname } from 'path';
 
 @Injectable()
 export class CloudinaryService {
-  constructor() {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-  }
+  constructor(@Inject('CLOUDINARY') private readonly cloudinaryInstance: typeof cloudinary) { }
 
   private async processUpload(file: Express.Multer.File, options: any): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      const uploadStream = this.cloudinaryInstance.uploader.upload_stream(options, (error, result) => {
         if (error || !result) return reject(error || new Error('Upload échoué'));
         resolve(result);
       });
@@ -42,9 +36,9 @@ export class CloudinaryService {
       // 🚀 L'ASTUCE : On définit le public_id SANS l'extension, 
       // mais on utilise 'use_filename' et on laisse Cloudinary gérer.
       // OU on force le public_id avec l'extension directement :
-      public_id: `${safeName}-${Date.now()}${extension}`, 
-      access_mode: 'public', 
-    type: 'upload',
+      public_id: `${safeName}-${Date.now()}${extension}`,
+      access_mode: 'public',
+      type: 'upload',
     });
   }
 

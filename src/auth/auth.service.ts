@@ -120,7 +120,6 @@ export class AuthService {
                 status: 200,
                 data: {
                     utilisateur: this.formatUserResponse(utilisateur),
-                    ...tokens,
                 },
             }
         } catch (error) {

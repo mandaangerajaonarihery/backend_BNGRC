@@ -45,7 +45,7 @@ export class AuthController {
         return this.authService.currentUser(user.idUtilisateur);
     }
 
-    @Get('/profile/:id')
+    @Get('/editer/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
     @ApiBearerAuth()
@@ -55,7 +55,7 @@ export class AuthController {
         return this.authService.findOne(id);
     }
 
-    @Patch('profile')
+    @Patch()
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @UseInterceptors(FileInterceptor('avatar'))
@@ -72,22 +72,22 @@ export class AuthController {
         return this.authService.connexion(loginAuthDto);
     }
 
-    @Post('deconnexion/:id')
+    @Post('deconnexion')
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Deconnexion' })
     @ApiBadRequestResponse({ description: 'Erreur lors de la deconnexion' })
-    deconnexion(@Param('id') id: string) {
-        return this.authService.logout(id);
+    deconnexion(@GetUser() user: any) {
+        return this.authService.logout(user.idUtilisateur);
     }
 
-    @Post('refresh-token/:id')
+    @Post('refresh-token')
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Refresh token' })
     @ApiBadRequestResponse({ description: 'Erreur lors du refresh token' })
-    refreshToken(@Param('id') id: string) {
-        return this.authService.refreshToken(id);
+    refreshToken(@GetUser() user: any) {
+        return this.authService.refreshToken(user.idUtilisateur);
     }
 
     @Post('mot-de-passe-oublie')
