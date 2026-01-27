@@ -56,22 +56,26 @@ export class TypeRubriqueService {
     }
   }
 
-  async findAll(page = 1, limit = 10, search?: string, idRubrique?: string) {
+  async findAll(page = 1, limit = 10, search?: string, idRubrique?: string,update?: Date) {
     try {
       const [data, total] = await this.typeRubriqueRepository.findAndCount({
         skip: (page - 1) * limit,
         take: limit,
         where: [
           { nomTypeRubrique: Like(`%${search}%`) },
+          {dateCreation: update},
+          {dateModification: update},
+          {fichiers: {dateCreation: update}},
           { rubrique: { idRubrique: idRubrique } },
         ],
+        relations: ['rubrique','fichiers'],
         order: { nomTypeRubrique: 'ASC' },
       });
 
       return {
         message: 'Liste des types de rubriques',
         data,
-        meta: {
+        pagination: {
           total,
           page,
           limit,
@@ -85,7 +89,7 @@ export class TypeRubriqueService {
 
   async findOne(id: string) {
     try {
-      const typeRubrique = await this.typeRubriqueRepository.findOne({ where: { idTypeRubrique: id } })
+      const typeRubrique = await this.typeRubriqueRepository.findOne({ where: { idTypeRubrique: id }, relations: ['rubrique','fichiers'] })
       if (!typeRubrique) {
         throw new BadRequestException('Type de rubrique non trouvée');
       }

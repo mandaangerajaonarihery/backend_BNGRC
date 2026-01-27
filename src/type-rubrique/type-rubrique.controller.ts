@@ -6,16 +6,16 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/entities/auth.entity';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Type Rubrique')
 @Controller('type-rubrique')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class TypeRubriqueController {
   constructor(private readonly typeRubriqueService: TypeRubriqueService) { }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Créer un type de rubrique' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
@@ -24,12 +24,17 @@ export class TypeRubriqueController {
     return this.typeRubriqueService.create(createTypeRubriqueDto);
   }
 
-  @Get('/:idRubrique')
+  @Get()
   @ApiOperation({ summary: 'Lister les types de rubriques' })
   @ApiResponse({ status: 200, description: 'Liste des types de rubriques' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
-  findAll(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string, @Param('idRubrique') idRubrique: string) {
-    return this.typeRubriqueService.findAll(page, limit, search, idRubrique);
+  @ApiQuery({ name: 'page',type: 'number', required: false })
+  @ApiQuery({ name: 'limit',type: 'number', required: false })
+  @ApiQuery({ name: 'search',type: 'string', required: false })
+  @ApiQuery({ name: 'idRubrique',type: 'string', required: true })
+  @ApiQuery({ name: 'update',type: 'Date', required: false })
+  findAll(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string, @Query('idRubrique') idRubrique: string, @Query('update') update: Date) {
+    return this.typeRubriqueService.findAll(page, limit, search, idRubrique,update);
   }
 
   @Get('/edit/:id')
@@ -41,6 +46,7 @@ export class TypeRubriqueController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Mettre à jour un type de rubrique' })
   @ApiResponse({ status: 200, description: 'Type de rubrique mise à jour' })
@@ -50,6 +56,7 @@ export class TypeRubriqueController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Supprimer un type de rubrique' })
   @ApiResponse({ status: 200, description: 'Type de rubrique supprimée' })

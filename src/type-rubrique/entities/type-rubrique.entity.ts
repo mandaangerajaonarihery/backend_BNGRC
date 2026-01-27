@@ -1,6 +1,6 @@
 import { Fichier } from "src/fichier/entities/fichier.entity";
 import { Rubrique } from "src/rubriques/entities/rubrique.entity";
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('type-rubriques')
 export class TypeRubrique {
@@ -17,6 +17,7 @@ export class TypeRubrique {
     dateModification: Date;
 
     @ManyToOne(() => Rubrique, (rubrique) => rubrique.typeRubriques)
+    @JoinColumn({name: 'idRubrique'})
     rubrique: Rubrique;
 
     @OneToMany(() => Fichier, (fichier) => fichier.typeRubrique)

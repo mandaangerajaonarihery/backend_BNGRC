@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Fichier } from "src/fichier/entities/fichier.entity";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 export enum Role {
     ADMIN = 'ADMIN',
@@ -39,6 +40,9 @@ export class Auth {
  
     @Column({ nullable: true })
     avatar: string;
+
+    @OneToMany(() => Fichier, (fichier) => fichier.auth)
+    fichiers: Fichier[];
 
     @Column({ type: 'text', nullable: true })
     refreshToken: string | null;

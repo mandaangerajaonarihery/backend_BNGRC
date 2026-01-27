@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsUUID } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsUUID } from "class-validator";
 
 export class CreateFichierDto {
     @ApiProperty({ description: 'fichier', type: 'string', format: 'binary' })
@@ -9,4 +9,9 @@ export class CreateFichierDto {
     @IsNotEmpty()
     @IsUUID()
     idTypeRubrique: string;
+
+    @ApiProperty({ description: 'Privée ou publique' })
+    @IsNotEmpty()
+    @IsBoolean()
+    privee: boolean;
 }

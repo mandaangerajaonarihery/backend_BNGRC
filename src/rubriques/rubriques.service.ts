@@ -35,7 +35,7 @@ export class RubriquesService {
       const [data, total] = await this.rubriquesRepository.findAndCount({
         skip: (page - 1) * limit,
         take: limit,
-        relations: ['typeRubriques','typeRubriques.fichiers'],
+        relations: ['typeRubriques'],
         where: search
           ? { libelle: Like(`%${search}%`) }
           : {},
@@ -45,7 +45,7 @@ export class RubriquesService {
       return {
         message: 'Liste des rubriques',
         data,
-        meta: {
+        pagination: {
           total,
           page,
           limit,

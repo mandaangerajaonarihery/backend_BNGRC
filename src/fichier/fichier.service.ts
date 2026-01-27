@@ -44,6 +44,7 @@ export class FichierService {
         tailleFichier: file.size,
         cheminFichier: uploadResult.secure_url,
         typeRubrique: typeRubrique,
+        privee: createFichierDto.privee,
       });
 
       return await this.fichierRepository.save(fichier);
@@ -52,11 +53,11 @@ export class FichierService {
     }
   }
 
-  async findAll(idTypeRubrique: string) {
+  async findAll(idTypeRubrique: string, update: Date) {
     try {
       const fichiers = await this.fichierRepository.find({
         relations: ['typeRubrique'],
-        where: { typeRubrique: { idTypeRubrique: idTypeRubrique } },
+        where: { typeRubrique: { idTypeRubrique: idTypeRubrique },dateCreation:update },
       });
 
       const baseUrl = this.getBaseUrl();
