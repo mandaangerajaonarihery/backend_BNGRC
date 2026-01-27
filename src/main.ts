@@ -10,12 +10,11 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
   app.setGlobalPrefix('serviceterritoriale');
+  app.enableCors(); // Crucial pour ton bouton Télécharge
 
   app.useStaticAssets(join(__dirname, '..', 'storage'), {
     prefix: '/storage',
   });
-
-  app.enableCors();
 
   const config = new DocumentBuilder()
     .setTitle('Service Territoriale API')
@@ -25,21 +24,23 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('serviceterritoriale', app, document, {
-    swaggerOptions: {
-      swaggerOptions: { persistAuthorization: true },
-      customSiteTitle: 'Documentation API - Service Territoriale',
-    },
-  });
+  SwaggerModule.setup('serviceterritoriale', app, document);
 
-  app.getHttpAdapter().get('/serviceterritoriale/docs-json', (res: any) => {
+  // Correction de la route JSON (ajout de 'req')
+  app.getHttpAdapter().get('/serviceterritoriale/docs-json', (req: any, res: any) => {
     res.json(document);
   });
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-
-  console.log(`🚀 Service Territoriale démarré sur ${port}`);
-  console.log(`📚 Documentation disponible sur /docs`);
+  // --- LOGIQUE DE DÉPLOIEMENT ---
+  if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT ?? 3000;
+    await app.listen(port);
+  } else {
+    // Sur Vercel, on initialise juste l'app
+    await app.init();
+    return app.getHttpAdapter().getInstance();
+  }
 }
-bootstrap();
+
+// L'EXPORTATION QUE VERCEL CHERCHE
+export default bootstrap();
