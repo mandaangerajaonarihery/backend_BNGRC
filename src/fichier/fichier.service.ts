@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateFichierDto } from './dto/create-fichier.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Raw } from 'typeorm';
 import { Fichier } from './entities/fichier.entity';
 import { TypeRubrique } from '../type-rubrique/entities/type-rubrique.entity';
 import { ConfigService } from '@nestjs/config';
@@ -22,7 +22,7 @@ export class FichierService {
     private readonly cloudinaryService: CloudinaryService,
   ) { }
 
-  async create(createFichierDto: CreateFichierDto,idUtilisateur:string, file: Express.Multer.File) {
+  async create(createFichierDto: CreateFichierDto, idUtilisateur: string, file: Express.Multer.File) {
     try {
       if (!file) throw new BadRequestException('Aucun fichier n\'a été uploadé');
 
@@ -58,15 +58,26 @@ export class FichierService {
     }
   }
 
-  async findAllGlobal(idTypeRubrique: string, date: Date , statut: boolean) {
+  async findAllGlobal(idTypeRubrique: string, date: string, statut: boolean) {
     try {
+      const where: any = {
+        typeRubrique: { idTypeRubrique },
+        privee: statut
+      };
+
+      if (date) {
+        // Normaliser la date (remplacer les espaces et slashs par des tirets)
+        const normalizedSearch = date.replace(/[\s/]/g, '-');
+
+        where.dateCreation = Raw((alias) =>
+          `TO_CHAR(${alias}, 'DD-MM-YYYY') LIKE :date`,
+          { date: `%${normalizedSearch}%` }
+        );
+      }
+
       const fichiers = await this.fichierRepository.find({
         relations: ['typeRubrique'],
-        where: [
-          { typeRubrique: { idTypeRubrique: idTypeRubrique }},
-          {dateCreation: date },
-          {privee: statut}
-        ],
+        where: where,
       });
 
 
@@ -84,7 +95,7 @@ export class FichierService {
     try {
       const fichiers = await this.fichierRepository.find({
         relations: ['typeRubrique'],
-        where: { typeRubrique: { idTypeRubrique: idTypeRubrique } , privee: false , estValide: true },
+        where: { typeRubrique: { idTypeRubrique: idTypeRubrique }, privee: false, estValide: true },
       });
 
       return {
@@ -104,12 +115,12 @@ export class FichierService {
         relations: ['typeRubrique'],
       });
 
-    if (!fichier) throw new NotFoundException(`Fichier introuvable`);
-    return {
-      message: "fichier trouvé",
-      data: fichier,
-      status: 200
-    }
+      if (!fichier) throw new NotFoundException(`Fichier introuvable`);
+      return {
+        message: "fichier trouvé",
+        data: fichier,
+        status: 200
+      }
     } catch (error) {
       throw new BadRequestException(error.message)
     }
@@ -134,7 +145,7 @@ export class FichierService {
   /**
    * 🚀 MÉTHODE DE TÉLÉCHARGEMENT CORRIGÉE POUR TYPESCRIPT
    */
-  
+
   async download(id: string) {
     const fichier = await this.fichierRepository.findOne({ where: { idFichier: id } });
 

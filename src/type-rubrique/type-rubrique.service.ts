@@ -3,7 +3,7 @@ import { CreateTypeRubriqueDto } from './dto/create-type-rubrique.dto';
 import { UpdateTypeRubriqueDto } from './dto/update-type-rubrique.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeRubrique } from './entities/type-rubrique.entity';
-import { Like, Repository } from 'typeorm';
+import { Like, Repository, Raw } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { Rubrique } from 'src/rubriques/entities/rubrique.entity';
 
@@ -56,19 +56,38 @@ export class TypeRubriqueService {
     }
   }
 
-  async findAll(page = 1, limit = 10, search?: string, idRubrique?: string,update?: Date) {
+  async findAll(page = 1, limit = 10, search?: string, idRubrique?: string, date?: string) {
     try {
+      const where: any = {};
+
+      if (search) {
+        where.nomTypeRubrique = Like(`%${search}%`);
+      }
+
+      if (idRubrique) {
+        where.rubrique = { idRubrique };
+      }
+
+      if (date) {
+        // Normaliser la date (remplacer les espaces et slashs par des tirets)
+        const normalizedSearch = date.replace(/[\s/]/g, '-');
+
+        where.dateCreation = Raw((alias) =>
+          `TO_CHAR(${alias}, 'DD-MM-YYYY') LIKE :date`,
+          { date: `%${normalizedSearch}%` }
+        );
+      }
+
+      where.fichiers = {
+        estValide: true,
+        privee: false,
+      };
+
       const [data, total] = await this.typeRubriqueRepository.findAndCount({
         skip: (page - 1) * limit,
         take: limit,
-        where: [
-          { nomTypeRubrique: Like(`%${search}%`) },
-          {dateCreation: update},
-          {dateModification: update},
-          {fichiers: {dateCreation: update}},
-          { rubrique: { idRubrique: idRubrique } },
-        ],
-        relations: ['rubrique','fichiers'],
+        where,
+        relations: ['rubrique', 'fichiers'],
         order: { nomTypeRubrique: 'ASC' },
       });
 
@@ -87,9 +106,10 @@ export class TypeRubriqueService {
     }
   }
 
+
   async findOne(id: string) {
     try {
-      const typeRubrique = await this.typeRubriqueRepository.findOne({ where: { idTypeRubrique: id }, relations: ['rubrique','fichiers'] })
+      const typeRubrique = await this.typeRubriqueRepository.findOne({ where: { idTypeRubrique: id }, relations: ['rubrique', 'fichiers'] })
       if (!typeRubrique) {
         throw new BadRequestException('Type de rubrique non trouvée');
       }

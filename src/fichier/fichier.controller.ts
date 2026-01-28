@@ -27,8 +27,8 @@ export class FichierController {
   @ApiOperation({ summary: 'Créer un fichier' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiResponse({ status: 201, description: 'Fichier créé' })
-  create(@Body() createFichierDto: CreateFichierDto,@GetUser() user: Auth, @UploadedFile() file: Express.Multer.File) {
-    return this.fichierService.create(createFichierDto,user.idUtilisateur, file);
+  create(@Body() createFichierDto: CreateFichierDto, @GetUser() user: Auth, @UploadedFile() file: Express.Multer.File) {
+    return this.fichierService.create(createFichierDto, user.idUtilisateur, file);
   }
 
   @Get()
@@ -36,18 +36,18 @@ export class FichierController {
   @ApiResponse({ status: 200, description: 'Liste des fichiers' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBadRequestResponse({ description: 'Bad Request' })
-  @ApiQuery({ name: 'idTypeRubrique',type: 'string', required: true })
-  @ApiQuery({ name: 'date',type: 'Date', required: false })
-  @ApiQuery({name: 'statut',type: 'boolean', required: false})
-  findAll(@Query('idTypeRubrique') idTypeRubrique: string, @Query('update') date: Date, statut: boolean) {
-    return this.fichierService.findAllGlobal(idTypeRubrique,date,statut);
+  @ApiQuery({ name: 'idTypeRubrique', type: 'string', required: true })
+  @ApiQuery({ name: 'date', type: 'string', required: false })
+  @ApiQuery({ name: 'statut', type: 'boolean', required: false })
+  findAll(@Query('idTypeRubrique') idTypeRubrique: string, @Query('update') date: string, statut: boolean) {
+    return this.fichierService.findAllGlobal(idTypeRubrique, date, statut);
   }
 
   @Get("fichier-public")
   @ApiOperation({ summary: 'Lister tous les fichiers' })
   @ApiResponse({ status: 200, description: 'Liste des fichiers' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
-  @ApiQuery({ name: 'idTypeRubrique',type: 'string', required: true })
+  @ApiQuery({ name: 'idTypeRubrique', type: 'string', required: true })
   findAllStatut(@Query('idTypeRubrique') idTypeRubrique: string) {
     return this.fichierService.findAllStatutPrivee(idTypeRubrique);
   }

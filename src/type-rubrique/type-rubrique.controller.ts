@@ -28,13 +28,13 @@ export class TypeRubriqueController {
   @ApiOperation({ summary: 'Lister les types de rubriques' })
   @ApiResponse({ status: 200, description: 'Liste des types de rubriques' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
-  @ApiQuery({ name: 'page',type: 'number', required: false })
-  @ApiQuery({ name: 'limit',type: 'number', required: false })
-  @ApiQuery({ name: 'search',type: 'string', required: false })
-  @ApiQuery({ name: 'idRubrique',type: 'string', required: true })
-  @ApiQuery({ name: 'update',type: 'Date', required: false })
-  findAll(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string, @Query('idRubrique') idRubrique: string, @Query('update') update: Date) {
-    return this.typeRubriqueService.findAll(page, limit, search, idRubrique,update);
+  @ApiQuery({ name: 'page', type: 'number', required: false })
+  @ApiQuery({ name: 'limit', type: 'number', required: false })
+  @ApiQuery({ name: 'search', type: 'string', required: false })
+  @ApiQuery({ name: 'idRubrique', type: 'string', required: true })
+  @ApiQuery({ name: 'date', type: 'string', required: false })
+  findAll(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string, @Query('idRubrique') idRubrique: string, @Query('date') date: string) {
+    return this.typeRubriqueService.findAll(page, limit, search, idRubrique, date);
   }
 
   @Get('/edit/:id')

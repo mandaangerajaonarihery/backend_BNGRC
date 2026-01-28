@@ -19,7 +19,7 @@ export class RubriquesService {
       }
       rubrique = this.rubriquesRepository.create(createRubriqueDto);
       const rubriqueSaved = await this.rubriquesRepository.save(rubrique);
-      
+
       return {
         message: 'Rubrique créée avec succès',
         rubrique: rubriqueSaved,
@@ -35,11 +35,17 @@ export class RubriquesService {
       const [data, total] = await this.rubriquesRepository.findAndCount({
         skip: (page - 1) * limit,
         take: limit,
-        relations: ['typeRubriques'],
+        relations: ['typeRubriques', 'typeRubriques.fichiers'],
         where: search
           ? { libelle: Like(`%${search}%`) }
           : {},
-        order: { libelle: 'ASC' },
+        order: {
+          typeRubriques: {
+            fichiers: {
+              dateCreation: 'ASC',
+            },
+          },
+        },
       });
 
       return {
@@ -82,7 +88,7 @@ export class RubriquesService {
       }
 
       Object.assign(rubrique, updateRubriqueDto);
-      
+
       const rubriqueSaved = await this.rubriquesRepository.save(rubrique);
       return {
         message: 'Rubrique mise à jour avec succès',
