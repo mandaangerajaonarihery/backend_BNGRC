@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
 import { IsBoolean, IsNotEmpty, IsUUID } from "class-validator";
 
 export class CreateFichierDto {
@@ -13,5 +14,6 @@ export class CreateFichierDto {
     @ApiProperty({ description: 'Privée ou publique' })
     @IsNotEmpty()
     @IsBoolean()
+    @Transform(({ value }) => value === 'true' || value === true)
     privee: boolean;
 }

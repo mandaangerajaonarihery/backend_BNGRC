@@ -56,40 +56,37 @@ export class TypeRubriqueService {
     }
   }
 
-  async findAll(page = 1, limit = 10, search?: string, idRubrique?: string, date?: string) {
+  async findAll(page = 1,limit = 10,search?: string,idRubrique?: string,date?: string,) {
     try {
-      const where: any = {};
+      const query = this.typeRubriqueRepository
+        .createQueryBuilder('typeRubrique')
+        .leftJoinAndSelect('typeRubrique.rubrique', 'rubrique')
+        .leftJoinAndSelect('typeRubrique.fichiers', 'fichier')
+        .where('fichier.estValide = true')
+        .skip((page - 1) * limit)
+        .take(limit)
+        .where('1=1');
 
-      if (search) {
-        where.nomTypeRubrique = Like(`%${search}%`);
-      }
-
-      if (idRubrique) {
-        where.rubrique = { idRubrique };
-      }
-
-      if (date) {
-        // Normaliser la date (remplacer les espaces et slashs par des tirets)
-        const normalizedSearch = date.replace(/[\s/]/g, '-');
-
-        where.dateCreation = Raw((alias) =>
-          `TO_CHAR(${alias}, 'DD-MM-YYYY') LIKE :date`,
-          { date: `%${normalizedSearch}%` }
+      if (search?.trim()) {
+        query.andWhere(
+          'LOWER(typeRubrique.nomTypeRubrique) LIKE LOWER(:search)',
+          { search: `%${search.trim()}%` },
         );
       }
 
-      where.fichiers = {
-        estValide: true,
-        privee: false,
-      };
+      if (idRubrique) {
+        query.andWhere('rubrique.idRubrique = :idRubrique', { idRubrique });
+      }
 
-      const [data, total] = await this.typeRubriqueRepository.findAndCount({
-        skip: (page - 1) * limit,
-        take: limit,
-        where,
-        relations: ['rubrique', 'fichiers'],
-        order: { nomTypeRubrique: 'ASC' },
-      });
+      if (date) {
+        const normalized = date.replace(/[\s/]/g, '-');
+        query.andWhere(
+          `TO_CHAR(typeRubrique.dateCreation, 'DD-MM-YYYY') LIKE :date`,
+          { date: `%${normalized}%` },
+        );
+      }
+
+      const [data, total] = await query.getManyAndCount();
 
       return {
         message: 'Liste des types de rubriques',
@@ -107,9 +104,26 @@ export class TypeRubriqueService {
   }
 
 
+
   async findOne(id: string) {
     try {
       const typeRubrique = await this.typeRubriqueRepository.findOne({ where: { idTypeRubrique: id }, relations: ['rubrique', 'fichiers'] })
+      if (!typeRubrique) {
+        throw new BadRequestException('Type de rubrique non trouvée');
+      }
+      return {
+        message: 'Type de rubrique trouvée',
+        typeRubrique,
+        status: 200,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async editer(id: string){
+    try {
+      const typeRubrique = await this.typeRubriqueRepository.findOne({ where: { idTypeRubrique: id } })
       if (!typeRubrique) {
         throw new BadRequestException('Type de rubrique non trouvée');
       }

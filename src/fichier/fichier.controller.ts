@@ -32,15 +32,25 @@ export class FichierController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister tous les fichiers' })
+  @ApiOperation({ summary: 'Listerssss tous les fichiers' })
   @ApiResponse({ status: 200, description: 'Liste des fichiers' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiQuery({ name: 'idTypeRubrique', type: 'string', required: true })
   @ApiQuery({ name: 'date', type: 'string', required: false })
   @ApiQuery({ name: 'statut', type: 'boolean', required: false })
-  findAll(@Query('idTypeRubrique') idTypeRubrique: string, @Query('update') date: string, statut: boolean) {
+  findAll(@Query('idTypeRubrique') idTypeRubrique: string, @Query('date') date: string,@Query('statut') statut: boolean) {
     return this.fichierService.findAllGlobal(idTypeRubrique, date, statut);
+  }
+
+  @Get("non-valide")
+  @ApiOperation({ summary: ' tous les fichiers' })
+  @ApiResponse({ status: 200, description: 'Liste des fichiers' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBadRequestResponse({ description: 'Bad Request' })
+  findAllNonValide() {
+    return this.fichierService.findAllNonValide();
   }
 
   @Get("fichier-public")

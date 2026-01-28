@@ -32,21 +32,27 @@ export class RubriquesService {
 
   async findAll(page = 1, limit = 10, search?: string) {
     try {
-      const [data, total] = await this.rubriquesRepository.findAndCount({
-        skip: (page - 1) * limit,
-        take: limit,
-        relations: ['typeRubriques', 'typeRubriques.fichiers'],
-        where: search
-          ? { libelle: Like(`%${search}%`) }
-          : {},
-        order: {
-          typeRubriques: {
-            fichiers: {
-              dateCreation: 'ASC',
-            },
-          },
-        },
-      });
+      const query = this.rubriquesRepository
+        .createQueryBuilder('rubrique')
+        .leftJoinAndSelect('rubrique.typeRubriques', 'typeRubrique')
+        .leftJoinAndSelect(
+          'typeRubrique.fichiers',
+          'fichier',
+          'fichier.privee = false AND fichier.estValide = true',
+        )
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      if (search?.trim()) {
+        query.andWhere(
+          'LOWER(rubrique.libelle) LIKE LOWER(:search)',
+          { search: `%${search.trim()}%` },
+        );
+      }
+
+      query.orderBy('fichier.dateCreation', 'ASC');
+
+      const [data, total] = await query.getManyAndCount();
 
       return {
         message: 'Liste des rubriques',
@@ -62,6 +68,48 @@ export class RubriquesService {
       throw new BadRequestException(error.message);
     }
   }
+
+
+  async findAllMembre(page = 1, limit = 10, search?: string) {
+    try {
+      const query = this.rubriquesRepository
+        .createQueryBuilder('rubrique')
+        .leftJoinAndSelect('rubrique.typeRubriques', 'typeRubrique')
+        .leftJoinAndSelect(
+          'typeRubrique.fichiers',
+          'fichier',
+          'fichier.estValide = true',
+        )
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      if (search?.trim()) {
+        query.andWhere(
+          'LOWER(rubrique.libelle) LIKE LOWER(:search)',
+          { search: `%${search.trim()}%` },
+        );
+      }
+
+      query.orderBy('fichier.dateCreation', 'ASC');
+
+      const [data, total] = await query.getManyAndCount();
+
+      return {
+        message: 'Liste des rubriques',
+        data,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+
 
 
   async findOne(id: string) {

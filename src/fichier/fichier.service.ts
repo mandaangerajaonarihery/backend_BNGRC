@@ -108,6 +108,23 @@ export class FichierService {
     }
   }
 
+  async findAllNonValide(){
+    try {
+      const fichiers = await this.fichierRepository.find({
+        relations: ['typeRubrique'],
+        where: { estValide: false },
+      });
+
+      return {
+        message: `liste de fichier non valide`,
+        data: fichiers,
+        status: 200
+      }
+    } catch(error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   async findOne(id: string) {
     try {
       const fichier = await this.fichierRepository.findOne({

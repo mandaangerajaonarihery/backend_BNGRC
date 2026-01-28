@@ -45,6 +45,16 @@ export class TypeRubriqueController {
     return this.typeRubriqueService.findOne(id);
   }
 
+  @Get('/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Editer un type de rubrique par ID' })
+  @ApiResponse({ status: 200, description: 'Type de rubrique trouvée' })
+  @ApiBadRequestResponse({ description: 'Bad Request' })
+  editer(@Param('id') id: string) {
+    return this.typeRubriqueService.findOne(id);
+  }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
