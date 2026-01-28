@@ -8,7 +8,8 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../auth/entities/auth.entity';
+import { Auth, Role } from '../auth/entities/auth.entity';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
 
 @ApiTags('Fichier')
 @Controller('fichier')
@@ -23,30 +24,50 @@ export class FichierController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Créer un fichier' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiResponse({ status: 201, description: 'Fichier créé' })
-  create(@Body() createFichierDto: CreateFichierDto, @UploadedFile() file: Express.Multer.File) {
-    return this.fichierService.create(createFichierDto, file);
+  create(@Body() createFichierDto: CreateFichierDto,@GetUser() user: Auth, @UploadedFile() file: Express.Multer.File) {
+    return this.fichierService.create(createFichierDto,user.idUtilisateur, file);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lister tous les fichiers' })
   @ApiResponse({ status: 200, description: 'Liste des fichiers' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiQuery({ name: 'idTypeRubrique',type: 'string', required: true })
-  @ApiQuery({ name: 'update',type: 'Date', required: false })
-  findAll(@Query('idTypeRubrique') idTypeRubrique: string, @Query('update') update: Date) {
-    return this.fichierService.findAll(idTypeRubrique,update);
+  @ApiQuery({ name: 'date',type: 'Date', required: false })
+  @ApiQuery({name: 'statut',type: 'boolean', required: false})
+  findAll(@Query('idTypeRubrique') idTypeRubrique: string, @Query('update') date: Date, statut: boolean) {
+    return this.fichierService.findAllGlobal(idTypeRubrique,date,statut);
+  }
+
+  @Get("fichier-public")
+  @ApiOperation({ summary: 'Lister tous les fichiers' })
+  @ApiResponse({ status: 200, description: 'Liste des fichiers' })
+  @ApiBadRequestResponse({ description: 'Bad Request' })
+  @ApiQuery({ name: 'idTypeRubrique',type: 'string', required: true })
+  findAllStatut(@Query('idTypeRubrique') idTypeRubrique: string) {
+    return this.fichierService.findAllStatutPrivee(idTypeRubrique);
   }
 
   @Get('/:id/visualiser')
-  @ApiOperation({ summary: 'Lister un fichier' })
+  @ApiOperation({ summary: 'editer un fichier' })
   @ApiResponse({ status: 200, description: 'Fichier trouvé' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
   findOne(@Param('id') id: string) {
     return this.fichierService.findOne(id);
+  }
+
+  @Patch(':id/validation')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Valider un fichier' })
+  @ApiResponse({ status: 200, description: 'Fichier validé' })
+  @ApiBadRequestResponse({ description: 'Bad Request' })
+  updateValidation(@Param('id') id: string) {
+    return this.fichierService.updateValidation(id);
   }
 
   @Delete(':id')

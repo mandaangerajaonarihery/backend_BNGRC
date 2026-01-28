@@ -9,10 +9,11 @@ import { ConfigModule } from '@nestjs/config';
 import { CloudinaryProvider } from './cloudinary.provider'; // 🚀 N'oublie pas de créer ce fichier
 import { CloudinaryService } from './cloudinary.service';
 import { memoryStorage } from 'multer';
+import { Auth } from 'src/auth/entities/auth.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Fichier, TypeRubrique]),
+    TypeOrmModule.forFeature([Fichier, TypeRubrique,Auth]),
     ConfigModule,
     // 🚀 On passe en memoryStorage pour Cloudinary et Vercel
     MulterModule.register({
