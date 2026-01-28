@@ -214,7 +214,7 @@ export class AuthService {
             const utilisateur = await this.authRepository.findOne({ where: { idUtilisateur: id } });
             if (!utilisateur) throw new BadRequestException('Utilisateur non trouvé');
 
-            const { motDePasse, ...userData } = updateAuthDto;
+            const { motDePasse, confirmationMotDePasse, ...userData } = updateAuthDto;
             const updateData: any = { ...userData };
 
             if (avatar) {
